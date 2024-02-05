@@ -1,24 +1,18 @@
-import fs from 'fs';
-import path from 'path';
-import crypto from 'crypto';
-import {sendInfoMessage, sendMessageWarning} from "../utils/utils.js";
+import fs from "fs/promises";
+import path from "path";
+import crypto from "crypto";
+import { sendInfoMessage, sendMessageWarning } from "../utils/utils.js";
 
-export const calcHash = async (currentDirectory, lineArgument, readLineObject) => {
-    try {
-        const hashSum = crypto.createHash('sha256');
-        fs.readFile(path.resolve(currentDirectory, lineArgument), (err, data)=>{
-            if (err) {
-                sendMessageWarning('Invalid input\n')
-                readLineObject.prompt();
-            } else {
-                hashSum.update(data);
-                sendInfoMessage(`File hash - ${hashSum.digest('hex')}`);
-                readLineObject.prompt();
-            }
-        })
-    }
-    catch (error) {
-        sendMessageWarning('Operation failed\n')
-        readLineObject.prompt();
-    }
+export const calcHash = async (currentDirectory, lineArgument) => {
+  try {
+    const hashSum = crypto.createHash("sha256");
+    await fs
+      .readFile(path.resolve(currentDirectory, lineArgument))
+      .then((data) => {
+        hashSum.update(data);
+        sendInfoMessage(`File hash - ${hashSum.digest("hex")}`);
+      });
+  } catch (error) {
+    sendMessageWarning("Operation failed\n");
+  }
 };

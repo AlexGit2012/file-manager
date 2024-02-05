@@ -1,33 +1,40 @@
-import {isExists, sendMessageWarning} from "../utils/utils.js";
+import { isExists, sendInfoMessage } from "../utils/utils.js";
 import fs from "fs";
-import stream from 'stream';
 import path from "path";
+import stream from "stream";
 
-export const mv = (currentDirectory, firstLineArgument, secondLineArgument, readLineObject) => {
-    try {
-        isExists(path.resolve(currentDirectory, firstLineArgument)).then((isFileExists) => {
-            if (isFileExists) {
-                const dir = path.dirname(path.resolve(currentDirectory, secondLineArgument));
-                isExists(dir).then(isDestinationExists => {
-                    if (isDestinationExists) {
-                        const readStream = fs.createReadStream(path.resolve(currentDirectory, firstLineArgument));
-                        const writeStream = fs.createWriteStream(path.resolve(currentDirectory, secondLineArgument, path.basename(firstLineArgument)));
-                        stream.pipeline(readStream, writeStream, () => {
-                            fs.unlink(path.resolve(currentDirectory, firstLineArgument), () => {});
-                        });
-                    } else {
-                        sendMessageWarning('Invalid input');
-                        readLineObject.prompt();
-                    }
-                })
-            } else {
-                sendMessageWarning('Invalid input');
-                readLineObject.prompt();
-            }
-        })
-    }
-    catch (error) {
-        sendMessageWarning('Operation failed');
-        readLineObject.prompt();
-    }
-}
+export const mv = async (
+  currentDirectory,
+  firstLineArgument,
+  secondLineArgument = ""
+) => {
+  await Promise.all([
+    isExists(path.resolve(currentDirectory, firstLineArgument)),
+    isExists(path.resolve(currentDirectory, secondLineArgument)),
+    isExists(
+      path.resolve(
+        currentDirectory,
+        secondLineArgument,
+        firstLineArgument.split("/").at(-1)
+      )
+    ),
+  ]).then((filesPathsStatus) => {
+    if (filesPathsStatus[0] && filesPathsStatus[1]) {
+      if (filesPathsStatus[2]) throw new Error("Operation failed");
+      const readStream = fs.createReadStream(
+        path.resolve(currentDirectory, firstLineArgument)
+      );
+      const writeStream = fs.createWriteStream(
+        path.resolve(
+          currentDirectory,
+          secondLineArgument,
+          path.basename(firstLineArgument)
+        )
+      );
+      stream.pipeline(readStream, writeStream, () => {
+        fs.unlink(path.resolve(currentDirectory, firstLineArgument), () => {});
+      });
+      sendInfoMessage("File successfully moved!");
+    } else throw new Error("Invalid input");
+  });
+};
